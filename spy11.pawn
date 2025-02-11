@@ -1,0 +1,346 @@
+#include <stdlib.inc>
+#include <faldon.inc>
+ 
+#define SCRIPTNAME "spy11"
+ 
+#define NPCTAG "spy_spy11_tag"
+ 
+#define MOBSCRIPT "spy12"
+ 
+#define OX 209
+#define OY 228
+#define OM 5
+ 
+#define PIT_RUN "^spy11_pit_run"
+ 
+#define LEADER "^spy_team_lead"
+#define JOIN "^spy_team"
+#define ACTIVE "^spy_team_active"
+ 
+#define ROLENONE 0
+#define ROLEMAGE 1
+#define ROLEWAR 2
+#define ROLEASSISTANT 3
+ 
+#define TM 4
+#define TX 237
+#define TY 117
+#define DX 279
+#define DY 160
+ 
+#define KILLS "spy_team_kills"
+ 
+#define TIMEOUT "spy_team_to"
+#define TIMEOUTRESET "spy_team_to_r"
+ 
+#define GHOST 114
+#define GREEN 109
+ 
+#define KILLREQ 25
+ 
+#define MAX 255
+ 
+giveoptions(mapid, npcid, sktid) {
+ 
+        gsConvBegin();
+        shset(0, "Hey there!");
+        gsConvSetMessage(0);
+        
+        shset(0, KILLS);
+        new kills = gsGetFlag(0, 0);
+        
+        if(kills >= KILLREQ) { //Changed from 'if(kills + 1 >= KILLREQ) {' -- Tareim
+			shset(0, "Let me out of here!");
+			gsConvAddOption(1, 0);
+		}
+		
+        shset(0, "I'll talk to you later.");
+        gsConvAddOption(2, 0);
+        
+        gsConvEnd(npcid, mapid, sktid);
+}
+ 
+public converse(mapid, npcid, sktid, uidmsg) {
+ 
+        shset(0, NPCTAG);
+        gsSetFlag(0, 0, gsTag(mapid, npcid));
+ 
+        scriptname(sktid);
+ 
+        switch(uidmsg) {
+                case 0: giveoptions(mapid, npcid, sktid);
+                case 1: exitzone(sktid);
+                case 2: return;
+        }
+}
+ 
+exitzone(sktid) {
+ 
+        if(isinarea(sktid) == 1) {
+                shset(0, JOIN);
+                gsSetFlag(sktid, 0, 0);
+                shset(0, ACTIVE);
+                gsSetFlag(sktid, 0, 0);
+                shset(0, LEADER);
+                gsSetFlag(sktid, 0, 0);
+        
+                gsSetCoords(sktid, OX, OY, 0, OM);
+        
+        }
+}
+ 
+public countdown(secs) {
+ 
+        
+        if(--secs > 0) {
+                shset(0, NPCTAG);
+                new tag = gsGetFlag(0, 0);
+ 
+                shset(0, "");
+                shappendn(0, secs);
+                shappends(0, " seconds till the monsters arrive!");
+                gsSayMessage(tag, 0);
+ 
+                shset(0, SCRIPTNAME);
+                shset(1, "countdown");
+ 
+                gsTimer(0, 1, 5, secs, 0, 0, 0, 0);
+ 
+        }
+        else {
+                // Reset kill counter
+                shset(0, KILLS);
+                gsSetFlag(0, 0, 0);
+                
+                shset(0, TIMEOUT);
+                gsSetFlag(0, 0, 0);
+                
+                shset(0, TIMEOUTRESET);
+                gsSetFlag(0, 0, 0);
+                
+                startboosts();
+                spawnmobs();
+                
+                shset(0, PIT_RUN);
+				new currentRun = gsGetFlag(0, 0);
+                
+                timeout(currentRun);
+        }
+}
+ 
+public timeout(run) {
+
+	shset(0, PIT_RUN);
+	new currentRun = gsGetFlag(0, 0);
+	
+	if(run != currentRun) {
+		return;
+	}
+
+        shset(0, TIMEOUT);
+        new to = gsGetFlag(0, 0);
+        
+        shset(0, TIMEOUTRESET);
+        new tr = gsGetFlag(0, 0);
+                        
+        if(to == 1) {
+                
+                new members[MAX];
+                members = getteammembers();
+        
+                for(new i = 0; i < sizeof(members) && members[i] != -1; i++) {
+					exitzone(members[i]);
+					shset(0, "Your team was too slow, a team needs to kill atleast one monster per minute.");
+					gsStatusMessage(members[i], 0);
+                }
+        }
+        else {
+        
+                if(tr == 0) {
+                        shset(0, TIMEOUT);
+                        gsSetFlag(0, 0, 1);
+                        
+                        shset(0, SCRIPTNAME);
+                        shset(1, "timeout");
+                        
+                        gsTimer(0, 1, 250, run, 0, 0, 0, 0);
+                
+                }
+                else {
+                        shset(0, TIMEOUTRESET);
+                        gsSetFlag(0, 0, 0);
+                }
+ 
+        }
+}
+ 
+startboosts() {
+ 
+        new members[MAX];
+        members = getteammembers();
+        
+        for(new i = 0; i < sizeof(members) && members[i] != -1; i++) {
+                
+                switch(getrole(members[i])) {
+                        case ROLEMAGE: {
+                                
+                                mpboost(members[i], 12);
+                                hpboost(members[i], 1);
+                        }
+                        case ROLEWAR: {
+                                mpboost(members[i], 4);
+                                hpboost(members[i], 9);
+                        
+                        }
+                        
+                        case ROLEASSISTANT: {
+                                mpboost(members[i], 6);
+                                hpboost(members[i], 6);
+                        
+                        }
+                
+                }
+                
+                shset(0, "The adrenaline rushes through your body causing a significant regeneration boost!");
+                gsStatusMessage(members[i], 0);
+        }
+        
+}
+ 
+getteammembers() {
+ 
+        new members[MAX - 1];
+        new m = 0;
+        
+        for(new i = 0; i < MAX; i++) {
+                shset(0, "level");
+                if(gsGetFlag(i, 0) > 0) {
+                        if(isinarea(i) == 1 && isactive(i) == 1) {
+                                members[m++] = i;
+                        }
+                }
+        }
+        
+        //Flag close element with -1
+        members[m] = -1;
+        
+        return members;
+ 
+}
+ 
+spawnmobs() {
+        shset(0, NPCTAG);
+        new tag = gsGetFlag(0, 0);
+        shset(0, "Oh noez! The monsters have come!");
+        gsSayMessage(tag, 0);
+        
+        new xc = 0;
+        new yc = 0;
+        
+        new by = TY + 8;
+        new bx = TX + 8;
+        
+        for(new i = 0; i < KILLREQ; i++) {
+                
+                shset(1, MOBSCRIPT); // Script name                     
+                shset(0, "takedamage_script");
+                gsSetSFlag(0, 0, 1);
+                shset(0, "attack_script");
+                gsSetSFlag(0, 0, 1);
+                shset(0, "death_script");
+                gsSetSFlag(0, 0, 1);
+                if(gsRandom(0, 1) == 0) {
+                        gsSummon(4, bx + xc * 5, by + yc * 5, GHOST, 0, 0, 0, gsRandom(0, 1) == 0 ? 1 : 0);
+                
+                }
+                else {
+                        gsSummon(4, bx + xc * 5, by + yc * 5, GREEN, 0, 0, 0, gsRandom(0, 1) == 0 ? 1 : 0);
+                }
+                
+                if((yc = (yc + 1) % 5) == 0) {
+                        xc = (xc + 1) % 5;
+                }
+        }
+        
+}
+ 
+public mpboost(sktid, amount) {
+ 
+        new hpcur, hpmax, mpcur, mpmax;
+ 
+        gsGetHPMPInfo(sktid, hpcur, hpmax, mpcur, mpmax);
+        gsSetHPMPInfo(sktid, hpcur, mpcur + amount <= mpmax ? mpcur + amount : mpcur);
+        
+        if(isinarea(sktid) == 1) {
+                shset(0, SCRIPTNAME);
+                shset(1, "mpboost");
+        
+                gsTimer(0, 1, 5, sktid, amount, 0, 0, 0);
+        }
+}
+ 
+public hpboost(sktid, amount) {
+        new hpcur, hpmax, mpcur, mpmax;
+ 
+        gsGetHPMPInfo(sktid, hpcur, hpmax, mpcur, mpmax);
+        gsSetHPMPInfo(sktid, hpcur + amount <= hpmax ? hpcur + amount : hpcur, mpcur);
+        
+        if(isinarea(sktid) == 1) {
+                shset(0, SCRIPTNAME);
+                shset(1, "hpboost");
+        
+                gsTimer(0, 1, 5, sktid, amount, 0, 0, 0);
+        }
+}
+ 
+getrole(sktid) {
+        shset(0, JOIN);
+        return gsGetFlag(sktid, 0);
+}
+ 
+isactive(sktid) {
+        shset(0, ACTIVE);
+        return gsGetFlag(sktid, 0);
+}
+ 
+isinarea(sktid) {
+ 
+        new x,y,z,m;
+        gsGetCoords(sktid, x, y, z, m);
+ 
+ 
+        if (m == TM && x >= TX && x <= DX && y >= TY && y <= DY) {
+                
+                return 1;
+        }
+        else {
+                
+                return 0;
+        }
+ 
+}
+ 
+scriptname(sktid) {
+ 
+        if(isgm(sktid) == 1) {
+                shset(0, "Script: ");
+                shappends(0, SCRIPTNAME);
+                gsStatusMessage(sktid, 0);
+                        
+        }       
+}
+isgm(sktid) {
+        shset(0, "is_gm");
+        if(gsGetFlag(sktid, 0) == 1) {
+                return 1;
+        }       
+        return 0;
+}
+
+
+
+
+
+
+
+

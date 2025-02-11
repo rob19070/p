@@ -1,0 +1,529 @@
+#include <stdlib.inc>
+#include <faldon.inc>
+
+#define SCRIPTNAME "spy10"
+
+#define QUESTDAY "#spy_team_day"
+#define DAYCOUNT "#spy_team_nr"
+
+#define REWARDENABLED "spy_team_r_e"
+#define DAYRESTRICT "spy_team_day_r"
+
+#define ACTIVE "^spy_team_active"
+#define LEADER "^spy_team_lead"
+#define JOIN "^spy_team"
+#define ENABLED "spy_team_on"
+
+#define REWARD "#spy_team_reward"
+#define ITEMREWARD "#spy_team_ireward"
+
+#define ITEMCOUNT "spy_team_i_c"
+
+new items[] = { 
+	357, // arctic blade
+	35, // bliss
+	401, // flaming feet
+	262, // sword of kings
+	178, // war bow
+	463, // horned helm
+	261, // bow of lightning
+	359, // Thor's hammer
+	400, // boots of burning
+	387, // mourningstar
+	488, // doomed taly
+	489, // Alecto's wrath
+	412, // assassin blade
+	395, // Aegis
+	440, // mithril gaunts
+	350, // mithril robe
+	469, // blood robe
+	379, // divine sword
+	152, // master sword
+	404, // necro hat
+	33, // jester hat
+	418, // gauntlets of dead
+	334, // arctic ringmail
+	349 // shining force
+	
+};
+
+#define MAXTRIES 10
+
+#define ROLENONE 0
+#define ROLEMAGE 1
+#define ROLEWAR 2
+#define ROLEASSISTANT 3
+
+#define MX 287
+#define MY 173
+#define MAP 4
+
+#define MAX 255
+
+#define TM 4
+#define TX 237
+#define TY 117
+#define DX 279
+#define DY 160
+
+forward public converse(mapid, npcid, sktid, uidmsg);
+forward public exec(mapid, x, y, z, gmlvl, sktid);
+
+public exec(mapid, x, y, z, gmlvl, sktid) {
+
+	shset(0, "Amount of items rewarded by the pit:");
+	gsLocalMessage(sktid, 0, 0);
+
+	for(new i = 0; i < sizeof(items); i++) {
+		shset(0, ITEMCOUNT); shappendn(0, items[i]);
+		new amt = gsGetFlag(0, 0);
+		
+		shset(0, "obj"); shappendn(0, items[i]);
+		gsGetSFlag(0, 0, 0);
+		shappends(0, ": ");
+		shappendn(0, amt);
+		gsLocalMessage(sktid, 0, 0);
+	}
+}
+
+
+giveoptions(mapid, npcid, sktid) {
+
+	shset(0, ENABLED);
+	new e = gsGetFlag(0, 0);
+	
+	shset(0, REWARDENABLED);
+	new re = gsGetFlag(0, 0);
+
+	gsConvBegin();
+	shset(0, "Hey there, I'm Jennifer, welcome to the kill pit.");
+	if(e == 0) {
+		shappends(0, "\nThis quest is currently closed, come back later.");
+	}
+	gsConvSetMessage(0);
+	
+	shset(0, "What is this place?");
+	gsConvAddOption(5, 0);
+	
+	if(e == 1 || ism(sktid) == 1) {
+		shset(0, "Can I join in?");
+		gsConvAddOption(1, 0);
+	}
+
+	shset(0, REWARD);
+	if(gsGetFlag(sktid, 0) == 1 && re == 1) {
+		shset(0, "I have come to claim my reward.");
+		gsConvAddOption(7, 0);
+	}
+
+	shset(0, "I'll be going now.");
+	gsConvAddOption(6, 0);
+	
+	if(ism(sktid) == 1) {
+
+		shset(0, "GM/M: ");
+		shappends(0, e == 1 ? "Disable" : "Enable");
+		
+		gsConvAddOption(99, 0);	
+	}
+	if(isgm(sktid) == 1) {
+		shset(0, "GM: Reset");
+		gsConvAddOption(101, 0);
+		
+		shset(0, DAYRESTRICT);
+		new dr = gsGetFlag(0, 0);
+		
+		shset(0, "GM: Set Day Restriction ");
+		shappends(0, dr == 1 ? "OFF" : "ON");
+		gsConvAddOption(103, 0);
+		
+		shset(0, "GM: ");
+		shappends(0, re == 1 ? "Disable rewards" : "Enable rewards");
+		
+		gsConvAddOption(102, 0);
+	}
+
+	gsConvEnd(npcid, mapid, sktid);
+}
+
+joinoptions(mapid, npcid, sktid) {
+
+	gsConvBegin();
+	
+	if(anyinarea() == 0) {
+	
+		shset(0, "level");
+		if(gsGetFlag(sktid, 0) >= 150 || ism(sktid) == 1) {
+			
+			shset(0, DAYRESTRICT);
+			new dr = gsGetFlag(0, 0);
+			
+			if(daycheck(sktid, 0) == 1 || dr == 0) {
+				shset(0, "cur_pets");
+				if(gsGetFlag(sktid, 0) == 0) {
+					shset(0, "What kind of role do you wish to have?");
+					gsConvSetMessage(0);
+					
+					shset(0, "Mage");
+					gsConvAddOption(2, 0);
+				
+					shset(0, "Warrior");
+					gsConvAddOption(3, 0);
+				
+					shset(0, "Assistant");
+					gsConvAddOption(4, 0);
+					
+					shset(0, "Nevermind");
+					gsConvAddOption(6, 0);
+				}
+				else {
+					shset(0, "You're not allowed to take pets, please put your pets in the Zoo and come back.");
+					gsConvSetMessage(0);
+				
+					shset(0, "Okay!");
+					gsConvAddOption(6, 0);
+				}
+			
+			}
+			else {
+				shset(0, "You have already tried the kill pit ");
+				shappendn(0, MAXTRIES);
+				shappends(0, " times on that account this Faldon day, please come back tomorrow!");
+				gsConvSetMessage(0);
+			
+				shset(0, "Okay!");
+				gsConvAddOption(6, 0);
+			}
+		
+		}
+		else {
+			shset(0, "You need to be atleast level 150 to join.");
+			gsConvSetMessage(0);
+			
+			shset(0, "Okay!");
+			gsConvAddOption(6, 0);
+		}
+	
+	}
+	else {
+		shset(0, "Not at the moment, another team is still busy down there. Come back in a bit.");
+		gsConvSetMessage(0);
+		
+		shset(0, "Okay!");
+		gsConvAddOption(6, 0);
+	}
+	
+	gsConvEnd(npcid, mapid, sktid);
+}
+
+public converse(mapid, npcid, sktid, uidmsg) {
+
+	scriptname(sktid);
+
+	switch(uidmsg) {
+		case 0: giveoptions(mapid, npcid, sktid);
+		case 1: joinoptions(mapid, npcid, sktid);
+		case 2: playerjoin(sktid, ROLEMAGE);
+		case 3: playerjoin(sktid, ROLEWAR);
+		case 4: playerjoin(sktid, ROLEASSISTANT);
+		case 5: explain(mapid, npcid, sktid);
+		case 6: return;
+		case 7: reward(sktid, 0);
+		case 99: {
+			if(ism(sktid) == 1) {
+				shset(0, ENABLED);
+				new e = gsGetFlag(0, 0);
+				gsSetFlag(0, 0, e == 1 ? 0 : 1);
+			}
+		}
+		
+		case 101: {
+			if(isgm(sktid) == 1) {
+				shset(0, ITEMREWARD);
+				gsSetFlag(sktid, 0, 0);
+				shset(0, REWARD);
+				gsSetFlag(sktid, 0, 1);
+				shset(0, DAYCOUNT);
+				gsSetFlag(sktid, 0, 0);
+				
+				shset(0, "Stuff has been reset.");
+				gsStatusMessage(sktid, 0);
+			}
+		
+		}
+		case 102: {
+			if(isgm(sktid) == 1) {
+				shset(0, REWARDENABLED);
+				new re = gsGetFlag(0, 0);
+				
+				gsSetFlag(0, 0, re == 1 ? 0 : 1);
+				
+				shset(0, "Rewards have been");
+				shappends(0, re == 1 ? "Disabled" : "Enabled");
+				
+				gsStatusMessage(sktid, 0);
+			}
+		
+		}
+		case 103: {
+			if(isgm(sktid) == 1) {
+				shset(0, DAYRESTRICT);
+				new e = gsGetFlag(0, 0);
+				gsSetFlag(0, 0, e == 1 ? 0 : 1);
+			}
+		}
+	}
+
+}
+
+
+reward(sktid, force) {
+
+	shset(0, REWARD);
+	if(gsGetFlag(sktid, 0) == 1 || force == 1) {
+		gsSetFlag(sktid, 0, 0);
+		
+		
+		shset(0, "faldon_day");
+		new fday = gsGetFlag(0, 0);
+		shset(0, ITEMREWARD);
+		new iday = gsGetFlag(sktid, 0);
+		
+		new cit = iscitizen(sktid);
+		new rnd = gsRandom(0, 1150);
+			
+		new spells[] = {33, 49, 35, 43, 21, 26, 47, 31, 3, 9, 6, 14, 29, 48};
+		// clit, charged bolt, death darts, ebolt, flamestrike, nova, slimes, weaken, pcloud, EQ, HA, polymorph, holy strike, teleport
+		
+		new itemid = 0;
+		new prefix = 0;
+		new suffix = 0;
+		new amount = 0;
+				
+		// a max of 1 item per week per C account
+		if(rnd >= 0 && rnd < 2 && iday + 336 <= fday && cit == 1) {
+			shset(0, ITEMREWARD);
+			gsSetFlag(sktid, 0, fday);
+			
+			new it = gsRandom(0, sizeof(items) - 1);
+			
+			itemid = items[it];
+			
+			shset(0, ITEMCOUNT); shappendn(0, itemid);
+			new amt = gsGetFlag(0, 0);
+			gsSetFlag(0, 0, ++amt);
+			
+			prefix = gsRandom(1, 24) * 2 - 1;
+			suffix = gsRandom(1, 24) * 2;
+			
+			amount = 0;
+		
+		}
+		else if(rnd >= 2 && rnd < 20 && cit == 1) {
+		
+			shset(0, "mi_prototype");
+			gsSetFlag(sktid, 0, 388);
+			shset(1, "mi_title");
+			gsSetFlag(sktid, 1, 66);
+		
+			itemid = 388;
+			amount = gsRandom(3, 7);
+		
+		}
+		else if(rnd >= 20 && rnd < 22 && cit == 1) {
+				
+			itemid = 110; // book
+			suffix = spells[gsRandom(0, sizeof(spells) - 1)];
+			switch(suffix) {
+				case 48: prefix = gsRandom(9, 10);
+				default: prefix = gsRandom(9, 11);
+			}			
+		
+		}
+		else {
+			
+			itemid = 13; // gold
+			
+			if(cit == 1) {
+				amount = gsRandom(125, 175);
+			}
+			else {
+				amount = gsRandom(100, 150);
+			}
+		
+		}
+		
+		if(ism(sktid)) {
+		
+			shset(0,"Reward: "); 
+			
+			shset(1, "obj");
+			shappendn(1, itemid);
+			gsGetSFlag(0, 1, 1);
+			
+			if(amount > 0) {
+				shappendn(0, amount);
+				shappends(0, " ");
+			}
+			
+			shappendb(0, 1);
+			
+			gsStatusMessage(sktid, 0);
+		}
+		else {
+			gsInvAddItem(sktid, itemid, amount, 0, prefix, suffix);
+			gsInvSend(sktid);
+			shset(0, "Jennifer gave you a reward.");
+			gsStatusMessage(sktid, 0);
+		}	
+	}
+
+}
+
+explain(mapid, npcid, sktid) {
+	gsConvBegin();
+	shset(0, "This is the kill pit, we summon monsters in a zone for you and your team to kill. If you kill the monsters and live you will get a reward.");
+	gsConvSetMessage(0);
+	
+	shset(0, "I understand.");
+	gsConvAddOption(6, 0);
+
+	gsConvEnd(npcid, mapid, sktid);
+}
+
+daycheck(sktid, add) {
+
+	shset(0, "faldon_day");
+	shset(1, QUESTDAY);
+	shset(2, DAYCOUNT);
+	
+	new fday = gsGetFlag(0, 0);
+	new qday = gsGetFlag(sktid, 1);
+	new dc = gsGetFlag(sktid, 2);
+	
+	if(fday == qday) {
+		
+		if(dc < MAXTRIES) {
+			if(add == 1) {
+				gsSetFlag(sktid, 2, dc + 1);
+			}	
+			
+			return 1;
+		}
+		else {
+			return 0;
+		}
+	}
+	else {
+		gsSetFlag(sktid, 1, fday);
+		gsSetFlag(sktid, 2, add == 1 ? 1 : 0);
+		return 1;
+	}
+}
+
+playerjoin(sktid, role) {
+
+	shset(0, DAYRESTRICT);
+	new dr = gsGetFlag(0, 0);
+
+	if((daycheck(sktid, 1) == 1 || dr == 0) && anyinarea() == 0) {
+	
+		shset(0, JOIN);
+		gsSetFlag(sktid, 0, role);
+		
+		shset(0, LEADER);
+		gsSetFlag(sktid, 0, 0);
+		
+		shset(0, ACTIVE);
+		gsSetFlag(sktid, 0, 0);
+		
+		shset(0, "faldon_day");
+		shset(1, QUESTDAY);
+		gsSetFlag(sktid, 1, gsGetFlag(0, 0));
+	
+		gsSetCoords(sktid, MX, MY, 0, MAP);
+		
+		shset(0, "To join the team talk to Larry, the first to talk to him will be assigned the Team Leader role. The Team Leader decides when the team goes in.");
+		gsTutorialBegin();
+		gsTutorialAdd(0);
+		gsTutorialEnd(sktid);
+	}
+}
+
+anyinarea() {
+
+	for(new i = 0; i < MAX; i++) {
+		
+		shset(0, "level");
+		if(gsGetFlag(i, 0) > 0) {
+		
+			if(isinarea(i) == 1) {
+				return 1;
+			}
+		
+		}
+	
+	}
+	
+	return 0;
+}
+
+isinarea(sktid) {
+
+	new x,y,z,m;
+	gsGetCoords(sktid, x, y, z, m);
+
+
+	if (m == TM && x >= TX && x <= DX && y >= TY && y <= DY) {
+		
+		return 1;
+	}
+	else {
+		
+		return 0;
+	}
+
+}
+
+scriptname(sktid) {
+
+	if(isgm(sktid) == 1) {
+		shset(0, "Script: ");
+		shappends(0, SCRIPTNAME);
+		gsStatusMessage(sktid, 0);
+			
+	}	
+}
+iscitizen(sktid) {
+	shset(0, "is_citizen");
+	if(gsGetFlag(sktid, 0) == 1) {
+		return 1;
+	}	
+	return 0;
+}
+ism(sktid) {
+	shset(0, "is_moderator");
+	if(gsGetFlag(sktid, 0) == 1) {
+		return 1;
+	}	
+	return 0;
+}
+isgm(sktid) {
+	shset(0, "is_gm");
+	if(gsGetFlag(sktid, 0) == 1) {
+		return 1;
+	}	
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+

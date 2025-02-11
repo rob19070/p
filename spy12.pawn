@@ -1,0 +1,435 @@
+#include <stdlib.inc>
+#include <faldon.inc>
+
+#define LEADER "^spy_team_lead"
+#define JOIN "^spy_team"
+#define ACTIVE "^spy_team_active"
+
+#define KILLS "spy_team_kills"
+
+#define SCRIPTNAME "spy12"
+
+#define REWARD "#spy_team_reward"
+
+#define TIMEOUT "spy_team_to"
+#define TIMEOUTRESET "spy_team_to_r"
+
+#define ROLENONE 0
+#define ROLEMAGE 1
+#define ROLEWAR 2
+#define ROLEASSISTANT 3
+
+#define OX 209
+#define OY 228
+#define OM 5
+
+#define TM 4
+#define TX 237
+#define TY 117
+#define DX 279
+#define DY 160
+
+#define KILLREQ 25
+
+#define GHOST 114
+#define GREEN 109
+#define GOLD 110
+#define ELDER 88
+
+#define MAX 255
+
+forward public attack(npcidtag, sktid, mapid, npcid, damageDone);
+forward public death(killerid, monsterid, x, y, z, map);
+forward public warpout(sktid);
+forward public takedamage(npcidtag, mapid, npcid, sktid, damageTaken, immunity, damageClass);
+
+public death(killerid, monsterid, x, y, z, map) {
+
+	shset(0, KILLS);
+	new k = gsGetFlag(0, 0);
+	if(++k < KILLREQ) {
+	
+		// Reset the timeout
+		shset(0, TIMEOUT);
+		gsSetFlag(0, 0, 0);
+		
+		// update kills
+		shset(0, KILLS);
+		gsSetFlag(0, 0, k);
+		
+		shset(0, "");
+		shappendn(0, KILLREQ - k);
+		shappends(0, " monsters to go!");
+		
+		gsSayMessage(killerid, 0);
+	}
+	else {
+		new members[MAX];
+		members = getteammembers();
+		for(new i = 0; i < sizeof(members) && members[i] != -1; i++) {
+			shset(0, SCRIPTNAME);
+			shset(1, "warpout");
+			gsTimer(0, 1, 100, members[i], 0, 0, 0, 0);
+			
+			shset(0, "Pick up any items you wish to save before you are warped out of the zone in a minute.");
+			gsStatusMessage(members[i], 0);
+
+			new hpcur, hpmax, mpcur, mpmax;
+			gsGetHPMPInfo(members[i], hpcur, hpmax, mpcur, mpmax);
+			if(hpcur > 0) {
+
+				shset(0, REWARD);
+				gsSetFlag(members[i], 0, 1);
+				
+				shset(0, "You can ask Jennifer for a reward.");
+				gsStatusMessage(members[i], 0);
+			}
+			else {
+				shset(0, "Dead team members cannot ask Jennifer for a reward.");
+				gsStatusMessage(members[i], 0);
+			}
+			
+			shset(0, TIMEOUTRESET);
+			gsSetFlag(0, 0, 1);
+		}
+	}
+
+
+}
+
+
+public warpout(sktid) {
+
+	if(isinarea(sktid) == 1) {
+		shset(0, JOIN);
+		gsSetFlag(sktid, 0, 0);
+		shset(0, ACTIVE);
+		gsSetFlag(sktid, 0, 0);
+		shset(0, LEADER);
+		gsSetFlag(sktid, 0, 0);
+
+		gsSetCoords(sktid, OX, OY, 0, OM);
+	}
+
+}
+
+public takedamage(npcidtag, mapid, npcid, sktid, damageTaken, immunity, damageClass) {
+
+	shset(0, "monster_number");
+	new mobid = gsGetFlag(npcidtag, 0);
+	
+	switch(mobid) {
+	
+		case GHOST: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 2);
+						case 3: gsSetFlag(0, 0, damageTaken / 3);
+						case 2: gsSetFlag(0, 0, damageTaken / 4);
+						case 0: gsSetFlag(0, 0, damageTaken / 10);
+					}
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 3);
+						case 3: gsSetFlag(0, 0, damageTaken * 1);
+						case 2: gsSetFlag(0, 0, (damageTaken * 15) / 10);
+						case 0: gsSetFlag(0, 0, (damageTaken * 25) / 10);
+					}	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 2);
+						case 3: gsSetFlag(0, 0, damageTaken / 2);
+						case 2: gsSetFlag(0, 0, damageTaken / 2);
+						case 0: gsSetFlag(0, 0, damageTaken / 3);
+					}
+				}
+				default: {
+					shset(0, "this_takedamage_damage");
+					gsSetFlag(0, 0, 0);
+				}
+			}
+		}
+		case GREEN: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken * 8);
+						case 3: gsSetFlag(0, 0, damageTaken * 4);
+						case 2: gsSetFlag(0, 0, damageTaken * 5);
+						case 0: gsSetFlag(0, 0, damageTaken / 5);
+					}
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 3);
+						case 3: gsSetFlag(0, 0, damageTaken / 3);
+						case 2: gsSetFlag(0, 0, damageTaken / 3);
+						case 0: gsSetFlag(0, 0, damageTaken / 15);
+					}	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 3);
+						case 3: gsSetFlag(0, 0, damageTaken / 3);
+						case 2: gsSetFlag(0, 0, damageTaken / 3);
+						case 0: gsSetFlag(0, 0, damageTaken / 8);
+					}
+				}
+				default: {
+					shset(0, "this_takedamage_damage");
+					gsSetFlag(0, 0, 0);
+				}
+			}
+		}
+		
+		case ELDER: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken * 2);
+						case 3: gsSetFlag(0, 0, damageTaken * 2);
+						case 2: gsSetFlag(0, 0, damageTaken * 2);
+						case 0: gsSetFlag(0, 0, damageTaken / 5);
+					}
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 2);
+						case 3: gsSetFlag(0, 0, damageTaken / 2);
+						case 2: gsSetFlag(0, 0, damageTaken / 2);
+						case 0: gsSetFlag(0, 0, damageTaken / 8);
+					}	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 8);
+						case 3: gsSetFlag(0, 0, damageTaken / 8);
+						case 2: gsSetFlag(0, 0, damageTaken / 8);
+						case 0: gsSetFlag(0, 0, damageTaken / 8);
+					}
+				}
+				default: {
+					shset(0, "this_takedamage_damage");
+					gsSetFlag(0, 0, 0);
+				}
+			}
+		}
+		
+		
+		case GOLD: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 2);
+						case 3: gsSetFlag(0, 0, damageTaken / 3);
+						case 2: gsSetFlag(0, 0, damageTaken / 4);
+						case 0: gsSetFlag(0, 0, damageTaken / 7);
+					}
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 3);
+						case 3: gsSetFlag(0, 0, damageTaken * 1);
+						case 2: gsSetFlag(0, 0, (damageTaken * 3) / 2);
+						case 0: gsSetFlag(0, 0, (damageTaken * 3) / 2);
+					}	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_takedamage_damage");
+					switch(damageClass) {
+						case 6: gsSetFlag(0, 0, damageTaken / 2);
+						case 3: gsSetFlag(0, 0, damageTaken / 2);
+						case 2: gsSetFlag(0, 0, damageTaken / 2);
+						case 0: gsSetFlag(0, 0, damageTaken / 3);
+					}
+				}
+				default: {
+					shset(0, "this_takedamage_damage");
+					gsSetFlag(0, 0, 0);
+				}
+			}
+		}
+	
+	}
+	
+}
+
+public attack(npcidtag, sktid, mapid, npcid, damageDone) {
+
+	shset(0, "monster_number");
+	new mobid = gsGetFlag(npcidtag, 0);
+	
+	switch(mobid) {
+	
+		case GHOST: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 3);
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone / 2);	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 2);
+				
+				}
+				default: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 8);
+				}
+			}
+		}
+		
+		case GREEN: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone / 3);
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 4);	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 3);
+				
+				}
+				default: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 8);
+				}
+			}
+		}
+		
+		case ELDER: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone);
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 4);	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 3);
+				
+				}
+				default: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 8);
+				}
+			}
+		}
+		
+		case GOLD: {
+			switch(getrole(sktid)) {
+				case ROLEMAGE: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone / 3);
+					
+				}
+				case ROLEWAR: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 4);	
+					
+				}
+				case ROLEASSISTANT: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 3);
+				
+				}
+				default: {
+					shset(0, "this_attack_damage");
+					gsSetFlag(0, 0, damageDone * 8);
+				}
+			}
+		}
+	}
+}
+
+getteammembers() {
+
+	new members[MAX - 1];
+	new m = 0;
+	
+	for(new i = 0; i < MAX; i++) {
+		shset(0, "level");
+		if(gsGetFlag(i, 0) > 0) {
+			if(isinarea(i) == 1 && isactive(i) == 1 && hasrole(i)) {
+				members[m++] = i;
+			}
+		}
+	}
+	
+	//Flag close element with -1
+	members[m] = -1;
+	
+	return members;
+
+}
+
+hasrole(sktid) {
+	shset(0, JOIN);
+	return gsGetFlag(sktid, 0) != ROLENONE;
+}
+
+isactive(sktid) {
+	shset(0, ACTIVE);
+	return gsGetFlag(sktid, 0);
+}
+
+isinarea(sktid) {
+
+	new x,y,z,m;
+	gsGetCoords(sktid, x, y, z, m);
+
+
+	if (m == TM && x >= TX && x <= DX && y >= TY && y <= DY) {
+		
+		return 1;
+	}
+	else {
+		
+		return 0;
+	}
+
+}
+
+getrole(sktid) {
+	shset(0, JOIN);
+	return gsGetFlag(sktid, 0);
+}
