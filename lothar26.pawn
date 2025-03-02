@@ -8,11 +8,7 @@
 #define POINTS_FLAG "spy_points_"
 #define RANK_FLAG "spy_rank_"
 #define TOTAL_RUNS "spy_runs_"
-#define RANK_REWARDS_CLAIMED "spy_rank_reward_claimed_"
 
-
-
-// Only needed for functions called by other scripts
 // Forward declarations to use pititem functions
 forward public spawn(npcidtag, mapid, npcid);
 forward public converse(MapID, NPCID, PlayerID, MSGID);
@@ -29,25 +25,11 @@ forward HasGoldenSet(plrid);
 forward HasSkullBlade(plrid);
 forward HasLuckBracelet(plrid);
 
-// Function to check if player has any unclaimed rank rewards
-hasUnclaimedRewards(PlayerID) {
-    // Get player's pit rank
-    shset(0, RANK_FLAG);
-    new currentRank = gsGetFlag(PlayerID, 0);
-    
-    // Check if already claimed
-    shset(0, RANK_REWARDS_CLAIMED);
-    new claimedRanks = gsGetFlag(PlayerID, 0);
-    
-    for(new i = 1; i <= currentRank; i++) {
-        if(!(claimedRanks & (1 << (i-1)))) {
-            return 1;
-        }
-    }
-    return 0;
+GetPermanentID(plrid) {
+    shset(0, "pid");
+    return gsGetFlag(plrid, 0);
 }
 
-// Improved function to check player equipment sets
 checkPlayerSets(MapID, NPCID, PlayerID) {
     gsConvBegin();
     
@@ -56,106 +38,116 @@ checkPlayerSets(MapID, NPCID, PlayerID) {
     
     new hasSets = 0;
     
-    // Get all set statuses in one call
+    // Set ITEMSCRIPT for all checks
     shset(0, ITEMSCRIPT);
-    shset(2, "GetEquippedSets");
-    
-    new burning, mithril, master, masterMage, masterBow, holy, arctic, blood, legend, golden;
-    new skullBlade, luckBracelet, mageWeapon, bowWeapon;
-    
-    gsCall(0, 2, PlayerID, burning, mithril, master, masterMage, masterBow, holy, arctic, 
-           blood, legend, golden, skullBlade, luckBracelet, mageWeapon, bowWeapon);
     
     // Check Burning Set
-    if(burning) {
+    shset(2, "HasBurningSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Burning Set\n");
         shappends(1, "  Effect: 30% Fire Resistance (10% per piece)\n\n");
     }
     
     // Check Mithril Set
-    if(mithril) {
+    shset(2, "HasMithrilSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Mithril Set\n");
         shappends(1, "  Effect: 30% Magic Resistance (10% per piece)\n\n");
     }
     
     // Check Master Set
-    if(master) {
+    shset(2, "HasMasterSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Master Set\n");
         shappends(1, "  Effect: +5% All Damage, +10% Physical Resistance\n\n");
     }
     
     // Check Master Mage Set
-    if(masterMage) {
+    shset(2, "HasMasterMageSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Master Mage Set\n");
         shappends(1, "  Effect: +15% Physical Resistance, Enhanced spell damage\n\n");
     }
     
     // Check Master Bow Set
-    if(masterBow) {
+    shset(2, "HasMasterBowSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Master Bow Set\n");
         shappends(1, "  Effect: +10% All Damage, +10% All Resistance\n\n");
     }
     
     // Check Holy Set
-    if(holy) {
+    shset(2, "HasHolySet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Holy Set\n");
         shappends(1, "  Effect: +10% All Resistance, +10% Spell Damage\n\n");
     }
     
     // Check Arctic Set
-    if(arctic) {
+    shset(2, "HasArcticSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Arctic Set\n");
         shappends(1, "  Effect: +5% Magic Resistance, Enhanced frost spells\n\n");
     }
     
     // Check Blood Set
-    if(blood) {
+    shset(2, "HasBloodSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Blood Set\n");
         shappends(1, "  Effect: +5% All Damage, +20% Fire Resistance\n\n");
     }
     
     // Check Legend Set
-    if(legend) {
+    shset(2, "HasLegendSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Legend Set\n");
         shappends(1, "  Effect: +15% All Damage\n\n");
     }
     
     // Check Golden Set
-    if(golden) {
+    shset(2, "HasGoldenSet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Golden Set\n");
         shappends(1, "  Effect: +10% All Damage, +10% All Resistance, 15% chance for bonus rank progress\n\n");
     }
     
-    // Check individual items
-    if(mageWeapon) {
+    // Check Mage Weapon
+    shset(2, "HasMageWeapon");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Mage Weapon Equipped\n");
         shappends(1, "  Effect: +5% Increased spell damage\n\n");
     }
     
-    if(bowWeapon) {
+    // Check Bow Weapon
+    shset(2, "HasBowWeapon");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Bow Weapon Equipped\n");
         shappends(1, "  Effect: Enhanced archer capabilities\n\n");
     }
     
-    if(skullBlade) {
+    // Check Skull Blade
+    shset(2, "HasSkullBlade");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Skull Blade Equipped\n");
         shappends(1, "  Effect: +10% damage\n\n");
     }
 
-    if(luckBracelet) {
+    // Check Luck Bracelet
+    shset(2, "HasLuckBracelet");
+    if(gsCall(0, 2, PlayerID) == 1) {
         hasSets = 1;
         shappends(1, "- Luck Bracelet Equipped\n");
         shappends(1, "  Effect: 15% Chance on extra rank up.\nAfter finishing a pit run, there is a chance you get +1 run on your total.\n\n");
@@ -206,47 +198,63 @@ getRankItemReward(rank) {
     return 0;
 }
 
-getRankTitle(rank, outputSlot = 0) {
+getRankTitle(rank) {
     switch(rank) {
-        case 1: shset(outputSlot, "Squire Initiate");
-        case 2: shset(outputSlot, "Apprentice Fighter");
-        case 3: shset(outputSlot, "Footman");
-        case 4: shset(outputSlot, "Man-at-Arms");
-        case 5: shset(outputSlot, "Sergeant");
-        case 6: shset(outputSlot, "Knight Errant");
-        case 7: shset(outputSlot, "Knight Defender");
-        case 8: shset(outputSlot, "Veteran Knight");
-        case 9: shset(outputSlot, "Master-at-Arms");
-        case 10: shset(outputSlot, "Champion Knight");
-        case 11: shset(outputSlot, "Lord Defender");
-        case 12: shset(outputSlot, "Noble Champion");
-        case 13: shset(outputSlot, "Royal Protector");
-        case 14: shset(outputSlot, "Grand Champion");
-        case 15: shset(outputSlot, "Legendary Defender");
-        default: shset(outputSlot, "Unknown");
+        case 1: shset(0, "Squire Initiate");
+        case 2: shset(0, "Apprentice Fighter");
+        case 3: shset(0, "Footman");
+        case 4: shset(0, "Man-at-Arms");
+        case 5: shset(0, "Sergeant");
+        case 6: shset(0, "Knight Errant");
+        case 7: shset(0, "Knight Defender");
+        case 8: shset(0, "Veteran Knight");
+        case 9: shset(0, "Master-at-Arms");
+        case 10: shset(0, "Champion Knight");
+        case 11: shset(0, "Lord Defender");
+        case 12: shset(0, "Noble Champion");
+        case 13: shset(0, "Royal Protector");
+        case 14: shset(0, "Grand Champion");
+        case 15: shset(0, "Legendary Defender");
+        default: shset(0, "Unknown");
     }
 }
 
 gmResetRankRewards(PlayerID) {
-    // Reset claimed ranks flag
-    shset(0, RANK_REWARDS_CLAIMED);
-    gsSetFlag(PlayerID, 0, 0);
+    new pid = GetPermanentID(PlayerID);
     
-    // Reset pit rank flag
-    shset(0, RANK_FLAG);
-    gsSetFlag(PlayerID, 0, 0);
+    if(!isgm(PlayerID)) {
+        return;
+    }
     
-    shset(0, "All pit rank and reward flags have been reset.");
+    // Reset ONLY the claimed ranks flag for this specific player
+    shset(0, "spy_rank_reward_claimed_");
+    shappendn(0, pid);
+    gsSetFlag(0, 0, 0);  // Explicitly set to 0
+    
+    shset(0, "Pit rank reward claims have been reset. You can now claim rewards again.");
     gsStatusMessage(PlayerID, 0);
 }
 
 InitConv(MapID, NPCID, PlayerID) {
+    new pid = GetPermanentID(PlayerID);
+    
     // Get player's pit rank
     shset(0, RANK_FLAG);
-    new currentRank = gsGetFlag(PlayerID, 0);
+    shappendn(0, pid);
+    new currentRank = gsGetFlag(0, 0);
     
     // Check for unclaimed rewards
-    new hasUnclaimed = hasUnclaimedRewards(PlayerID);
+    shset(0, "spy_rank_reward_claimed_");
+    shappendn(0, pid);
+    new claimedRanks = gsGetFlag(0, 0);
+    new hasUnclaimedRewards = 0;
+    
+    for(new i = 1; i <= currentRank; i++) {
+        if(!(claimedRanks & (1 << (i-1)))) {
+            hasUnclaimedRewards = 1;
+            break;
+        }
+    }
     
     gsConvBegin();
     
@@ -274,7 +282,7 @@ InitConv(MapID, NPCID, PlayerID) {
     }
     
     // Add unclaimed rewards notification
-    if(hasUnclaimed) {
+    if(hasUnclaimedRewards) {
         shset(1, "");
         shappendb(1, 0);
         shappends(1, "\n\nOh! And you have unclaimed pit rank rewards waiting!");
@@ -300,8 +308,9 @@ InitConv(MapID, NPCID, PlayerID) {
     
     // Debug GM information
     if(isgm(PlayerID)) {
-        shset(0, "[GM] Reset Pit Rank");
+        shset(0, "[GM] Reset Pit Rank Rewards");
         gsConvAddOption(5, 0);
+        
     }
     
     gsConvEnd(NPCID, MapID, PlayerID);
@@ -310,19 +319,24 @@ InitConv(MapID, NPCID, PlayerID) {
 showRankRewardShop(MapID, NPCID, PlayerID) {
     gsConvBegin();
     
+    new pid = GetPermanentID(PlayerID);
+    
     // Get current rank
     shset(0, RANK_FLAG);
-    new currentRank = gsGetFlag(PlayerID, 0);
+    shappendn(0, pid);
+    new currentRank = gsGetFlag(0, 0);
     
     // Get claimed rank rewards flag
-    shset(0, RANK_REWARDS_CLAIMED);
-    new claimedRanks = gsGetFlag(PlayerID, 0);
+    shset(0, "spy_rank_reward_claimed_");
+    shappendn(0, pid);
+    new claimedRanks = gsGetFlag(0, 0);
     
     shset(1, "Available Pit Rank Rewards\n");
     shappends(1, "======================\n\n");
     
     new hasUnclaimedRewards = 0;
     for(new i = 1; i <= currentRank; i++) {
+        // Always check if this specific rank reward is NOT claimed
         new hasClaimedThisRank = (claimedRanks & (1 << (i-1))) != 0;
         
         if(!hasClaimedThisRank) {
@@ -350,8 +364,9 @@ showRankRewardShop(MapID, NPCID, PlayerID) {
     }
     
     if(!hasUnclaimedRewards) {
+        // This means ALL rewards for current rank are claimed
         shappends(1, "\nYou have claimed all available rewards for your current rank.");
-        shappends(1, "\nComplete more pit runs to reach the next rank!");
+        shappends(1, "\nComplete more pit runs or reset rewards to unclaim.");
     }
     
     gsConvSetMessage(1);
@@ -377,9 +392,12 @@ showRankRewardShop(MapID, NPCID, PlayerID) {
 }
 
 giveRankReward(PlayerID, rank) {
+    new pid = GetPermanentID(PlayerID);
+    
     // Verify current rank
     shset(0, RANK_FLAG);
-    new currentRank = gsGetFlag(PlayerID, 0);
+    shappendn(0, pid);
+    new currentRank = gsGetFlag(0, 0);
     
     if(rank > currentRank) {
         shset(0, "You haven't reached this rank yet!");
@@ -388,8 +406,9 @@ giveRankReward(PlayerID, rank) {
     }
     
     // Check if already claimed
-    shset(0, RANK_REWARDS_CLAIMED);
-    new claimedRanks = gsGetFlag(PlayerID, 0);
+    shset(0, "spy_rank_reward_claimed_");
+    shappendn(0, pid);
+    new claimedRanks = gsGetFlag(0, 0);
     
     if(claimedRanks & (1 << (rank-1))) {
         shset(0, "You've already claimed this rank's reward!");
@@ -419,8 +438,9 @@ giveRankReward(PlayerID, rank) {
     gsInvSend(PlayerID);
     
     // Mark as claimed
-    shset(0, RANK_REWARDS_CLAIMED);
-    gsSetFlag(PlayerID, 0, claimedRanks | (1 << (rank-1)));
+    shset(0, "spy_rank_reward_claimed_");
+    shappendn(0, pid);
+    gsSetFlag(0, 0, claimedRanks | (1 << (rank-1)));
     
     shset(0, "You've received ");
     shappendn(0, goldAmount);
@@ -450,6 +470,7 @@ public converse(MapID, NPCID, PlayerID, MSGID) {
             // GM reset option
             if(isgm(PlayerID)) {
                 gmResetRankRewards(PlayerID);
+                showRankRewardShop(MapID, NPCID, PlayerID);
             }
         }
         default: {
@@ -473,3 +494,8 @@ isgm(sktid) {
     shset(0, "is_gm");
     return gsGetFlag(sktid, 0) == 1;
 }
+
+
+
+
+
